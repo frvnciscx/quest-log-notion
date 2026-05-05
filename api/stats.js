@@ -34,9 +34,28 @@ export default async function handler(req, res) {
     const page = personajeData.results[0];
     const props = page.properties;
 
-    const getRollup = (prop) => props[prop]?.rollup?.number || 0;
+    const getNumber  = (prop) => props[prop]?.number || 0;
+    const getRollup  = (prop) => props[prop]?.rollup?.number || 0;
     const getFormula = (prop) => props[prop]?.formula?.number || 0;
-    const getString = (prop) => props[prop]?.formula?.string || '';
+    const getString  = (prop) => props[prop]?.formula?.string || '';
+
+    // Suma todos los componentes del XP Total
+    const xpTotal =
+      getNumber('XP Físico') +
+      getNumber('XP Mente') +
+      getNumber('XP Hábitos') +
+      getNumber('XP Nutrición') +
+      getNumber('XP Negocio') +
+      getRollup('XP Hábitos Auto') +
+      getRollup('XP Auto');
+
+    const nivel = Math.floor(xpTotal / 500) + 1;
+    const rangos = ['💀 Iniciado','🗡️ Aprendiz','📖 Practicante','🛡️ Especialista','💎 Experto','🔥 Maestro','⚔️ Gran Maestro','👑 Leyenda'];
+    const rango = rangos[Math.min(nivel - 1, rangos.length - 1)];
+
+    const cur = xpTotal - (Math.floor(xpTotal / 500) * 500);
+    const filled = Math.floor(cur / 50);
+    const barraXP = `Nv.${nivel} ${'▰'.repeat(filled)}${'▱'.repeat(10 - filled)} ${cur}/500 XP`;
 
     const statMap = {};
     for (const row of statsData.results) {
@@ -49,19 +68,18 @@ export default async function handler(req, res) {
       if (name.includes('Negocio'))   statMap.negocio   = xp;
     }
 
-    const stats = {
+    res.status(200).json({
       fisico:    statMap.fisico    || 0,
       mente:     statMap.mente     || 0,
       nutricion: statMap.nutricion || 0,
       habitos:   statMap.habitos   || 0,
       negocio:   statMap.negocio   || 0,
-      xpTotal:   getFormula('XP Total'),
-      nivel:     getFormula('Nivel'),
-      rango:     getString('Rango'),
-      barraXP:   getString('Barra XP'),
-    };
+      xpTotal,
+      nivel,
+      rango,
+      barraXP,
+    });
 
-    res.status(200).json(stats);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
