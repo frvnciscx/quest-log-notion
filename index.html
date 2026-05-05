@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chronicle of the Undead</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ash: #0a0907;
+  --stone: #111009;
+  --ember: #c8792a;
+  --ember-dim: #7a4418;
+  --ember-bright: #e8a050;
+  --bone: #c4b48a;
+  --bone-dim: #7a6e52;
+  --bone-muted: #3d3828;
+  --blood: #8c2020;
+  --moss: #3a5c30;
+  --soul: #3a5c80;
+  --crack: rgba(196,180,138,0.07);
+  --seam: rgba(196,180,138,0.13);
+  --gap: 1px;
+}
+
+html { background: var(--ash); }
+
+body {
+  background: var(--ash);
+  font-family: 'IM Fell English', Georgia, serif;
+  color: var(--bone);
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.1) 3px, rgba(0,0,0,0.1) 4px);
+  pointer-events: none; z-index: 0;
+}
+
+.ds-wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; }
+
+.ds-topbar {
+  background: var(--stone);
+  border-bottom: 1px solid var(--seam);
+  padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+
+.ds-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 10px; color: var(--ember); letter-spacing: 3px; white-space: nowrap;
+}
+
+.ds-nav {
+  display: flex; gap: 14px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.ds-nav::-webkit-scrollbar { display: none; }
+
+.ds-nav-item {
+  font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 2px;
+  color: var(--bone-dim); cursor: pointer; text-transform: uppercase; white-space: nowrap;
+  transition: color 0.3s;
+}
+.ds-nav-item.active, .ds-nav-item:hover { color: var(--ember); }
+
+/* ── GRID ── */
+.ds-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--gap);
+  background: var(--seam);
+  border: 1px solid var(--seam); border-top: none;
+}
+
+@media (min-width: 700px) {
+  .ds-body {
+    grid-template-columns: 200px 1fr 185px;
+    grid-template-areas:
+      "left  center-top    right"
+      "left  center-habits right"
+      "left  covenants     right"
+      "left  covenants     right"
+      "epitaph epitaph     epitaph";
+  }
+  .left-col       { grid-area: left; }
+  .center-top     { grid-area: center-top; }
+  .center-habits  { grid-area: center-habits; }
+  .center-quests  { grid-area: covenants; }
+  .right-col      { grid-area: right; }
+  .epitaph        { grid-area: epitaph; }
+}
+
+.left-col, .right-col { display: flex; flex-direction: column; gap: var(--gap); }
+
+.panel { background: var(--stone); padding: 16px 14px; position: relative; }
+
+.rune-corner { position: absolute; width: 13px; height: 13px; }
+.rune-tl { top: 6px; left: 6px;   border-top: 1px solid var(--ember-dim); border-left: 1px solid var(--ember-dim); }
+.rune-tr { top: 6px; right: 6px;  border-top: 1px solid var(--ember-dim); border-right: 1px solid var(--ember-dim); }
+.rune-bl { bottom: 6px; left: 6px;  border-bottom: 1px solid var(--ember-dim); border-left: 1px solid var(--ember-dim); }
+.rune-br { bottom: 6px; right: 6px; border-bottom: 1px solid var(--ember-dim); border-right: 1px solid var(--ember-dim); }
+
+.sect-label {
+  font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 4px;
+  color: var(--ember-dim); text-transform: uppercase;
+  margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+}
+.sect-label::after { content: ''; flex: 1; height: 1px; background: var(--seam); }
+
+.micro-label {
+  font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 3px;
+  color: var(--bone-dim); text-transform: uppercase; margin-bottom: 6px;
+}
+
+/* ── PORTRAIT ── */
+.portrait-panel {
+  background: var(--stone); padding: 16px 14px;
+  display: flex; align-items: center; gap: 14px;
+}
+@media (min-width: 700px) {
+  .portrait-panel { flex-direction: column; text-align: center; padding: 20px 14px 16px; }
+}
+
+.portrait-frame {
+  width: 80px; height: 100px; flex-shrink: 0;
+  border: 1px solid var(--ember-dim); background: #0d0b08;
+  overflow: hidden; position: relative;
+}
+.portrait-frame::after {
+  content: ''; position: absolute; inset: 0;
+  outline: 1px solid var(--bone-muted); outline-offset: -5px; pointer-events: none;
+}
+@media (min-width: 700px) { .portrait-frame { width: 130px; height: 160px; } }
+
+.portrait-info { flex: 1; }
+
+.char-name { font-family: 'Cinzel Decorative', serif; font-size: 13px; color: var(--ember-bright); letter-spacing: 1px; margin-bottom: 2px; }
+.char-title { font-style: italic; font-size: 11px; color: var(--bone-dim); margin-bottom: 10px; }
+
+.humanity-row, .estus-row { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+@media (min-width: 700px) { .humanity-row, .estus-row { justify-content: center; } }
+
+.humanity-dot {
+  width: 9px; height: 9px;
+  border: 1px solid var(--bone-muted); background: #0a0907;
+  cursor: pointer; transition: background 0.25s, border-color 0.25s;
+  -webkit-tap-highlight-color: transparent;
+}
+.humanity-dot.lit { background: var(--ember); border-color: var(--ember-bright); }
+
+.estus-flask {
+  width: 20px; height: 26px; border: 1px solid var(--ember-dim); background: #0a0907;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.25s; -webkit-tap-highlight-color: transparent;
+}
+.estus-flask.full { background: rgba(200,121,42,0.22); }
+
+.stats-panel { background: var(--stone); padding: 16px 14px; flex: 1; }
+
+.ds-stat { margin-bottom: 10px; }
+.ds-stat-head { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.ds-stat-name { font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: 2px; color: var(--bone-dim); text-transform: uppercase; }
+.ds-stat-val  { font-size: 11px; color: var(--bone); }
+.ds-bar-bg    { height: 5px; background: #0d0b08; border: 1px solid var(--bone-muted); overflow: hidden; }
+.ds-bar-fill  { height: 100%; transition: width 0.9s ease; }
+
+/* ── CENTER TOP ── */
+.center-top {
+  background: var(--stone); padding: 16px;
+  display: grid; grid-template-columns: 1fr; gap: 16px;
+}
+@media (min-width: 500px) { .center-top { grid-template-columns: 1fr 1fr; padding: 18px 20px; } }
+
+.ds-inscription { font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 3px; color: var(--ember-dim); text-transform: uppercase; margin-bottom: 8px; }
+
+.ds-intention-input {
+  width: 100%; background: transparent; border: none;
+  border-bottom: 1px solid var(--seam);
+  color: var(--ember-bright); font-family: 'IM Fell English', serif;
+  font-style: italic; font-size: 14px; padding: 8px 2px;
+  outline: none; transition: border-color 0.3s;
+}
+.ds-intention-input:focus { border-bottom-color: var(--ember); }
+.ds-intention-input::placeholder { color: var(--bone-muted); }
+
+.quote-block {
+  margin-top: 10px; font-style: italic; font-size: 10px;
+  color: var(--bone-dim); line-height: 1.7;
+  border-left: 1px solid var(--ember-dim); padding-left: 10px;
+}
+
+.vitals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.vital-card { background: #0d0b08; border: 1px solid var(--seam); padding: 8px 10px; }
+.vital-name { font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 2px; color: var(--bone-dim); text-transform: uppercase; margin-bottom: 5px; }
+.vital-bar  { height: 4px; background: #080706; border: 1px solid var(--bone-muted); overflow: hidden; }
+
+/* ── HABITS ── */
+.center-habits { background: var(--stone); padding: 16px; }
+@media (min-width: 700px) { .center-habits { padding: 16px 20px; } }
+
+.habits-grid { display: grid; grid-template-columns: 1fr; }
+@media (min-width: 500px) { .habits-grid { grid-template-columns: 1fr 1fr; gap: 0 16px; } }
+
+.habit-row {
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer; padding: 11px 0;
+  border-bottom: 1px solid var(--crack);
+  transition: opacity 0.2s; min-height: 48px;
+  -webkit-tap-highlight-color: transparent;
+}
+.habit-row:active { opacity: 0.5; }
+
+.habit-sigil {
+  width: 20px; height: 20px; flex-shrink: 0;
+  border: 1px solid var(--bone-muted); background: #0d0b08;
+  position: relative; transition: all 0.3s;
+}
+.habit-sigil.lit { background: rgba(200,121,42,0.18); border-color: var(--ember); }
+.habit-sigil.lit::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 10px; height: 6px;
+  border-left: 2px solid var(--ember-bright); border-bottom: 2px solid var(--ember-bright);
+  transform: rotate(-45deg);
+}
+
+.habit-label { font-size: 14px; color: var(--bone); flex: 1; line-height: 1.3; transition: color 0.3s; }
+.habit-label.done { color: var(--bone-muted); text-decoration: line-through; }
+.habit-souls { font-family: 'Cinzel', serif; font-size: 8px; color: var(--ember-dim); flex-shrink: 0; }
+
+/* ── COVENANTS ── */
+.center-quests { background: var(--stone); padding: 14px 16px; }
+@media (min-width: 700px) { .center-quests { padding: 14px 20px; } }
+
+.covenants-label {
+  font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 4px;
+  color: var(--ember-dim); text-transform: uppercase;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
+.covenants-label::after { content: ''; flex: 1; height: 1px; background: var(--seam); }
+
+.covenants-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (min-width: 500px) { .covenants-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.quest-stone {
+  background: #0d0b08; border: 1px solid var(--seam);
+  padding: 10px 12px; cursor: pointer; transition: border-color 0.3s;
+  -webkit-tap-highlight-color: transparent;
+}
+.quest-stone:active { border-color: var(--ember-dim); }
+
+.quest-type { font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+.quest-name { font-size: 11px; color: var(--bone); line-height: 1.3; margin-bottom: 8px; font-style: italic; }
+.quest-progress-bg   { height: 3px; background: #080706; border: 1px solid var(--bone-muted); overflow: hidden; margin-bottom: 5px; }
+.quest-progress-fill { height: 100%; transition: width 0.6s; }
+.quest-tally { font-family: 'Cinzel', serif; font-size: 8px; color: var(--bone-dim); }
+
+/* ── SOULS / RIGHT ── */
+.souls-panel { background: var(--stone); padding: 16px 14px; position: relative; }
+
+.souls-count { font-family: 'Cinzel Decorative', serif; font-size: 32px; color: var(--ember); line-height: 1; margin-bottom: 2px; }
+.souls-label { font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 3px; color: var(--bone-dim); text-transform: uppercase; margin-bottom: 10px; }
+.souls-bar-bg   { height: 6px; background: #0d0b08; border: 1px solid var(--bone-muted); overflow: hidden; margin-bottom: 8px; }
+.souls-bar-fill { height: 100%; background: var(--ember-dim); transition: width 1s ease; }
+.bonfire-label { font-size: 10px; color: var(--bone-dim); font-style: italic; margin-bottom: 8px; }
+.bonfire-label span { color: var(--ember); }
+.rank-name { font-family: 'Cinzel Decorative', serif; font-size: 11px; color: var(--ember); margin-top: 4px; }
+
+.offering-panel { background: var(--stone); padding: 14px; }
+
+.offering-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+@media (min-width: 700px) { .offering-grid { grid-template-columns: 1fr; gap: 5px; } }
+
+.offering-btn {
+  background: #0d0b08; border: 1px solid var(--seam);
+  color: var(--bone-dim); font-family: 'Cinzel', serif;
+  font-size: 7px; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 12px 8px; cursor: pointer; transition: all 0.25s;
+  text-align: center; min-height: 48px;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (min-width: 700px) { .offering-btn { text-align: left; padding: 7px 8px; min-height: unset; } }
+.offering-btn:active { border-color: var(--ember-dim); color: var(--ember); background: rgba(200,121,42,0.06); }
+
+.inv-panel { background: var(--stone); padding: 14px; flex: 1; }
+.inv-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+@media (min-width: 700px) { .inv-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.inv-slot {
+  aspect-ratio: 1; background: #0d0b08; border: 1px solid var(--bone-muted);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: border-color 0.2s; -webkit-tap-highlight-color: transparent;
+}
+.inv-slot:active { border-color: var(--ember-dim); }
+
+.epitaph {
+  background: #0a0907; padding: 9px 20px;
+  text-align: center; border-top: 1px solid var(--seam);
+}
+.epitaph-text { font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 5px; color: var(--bone-muted); text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div class="ds-wrap">
+
+  <div class="ds-topbar">
+    <div class="ds-title">Chronicle of the Undead</div>
+    <div class="ds-nav">
+      <div class="ds-nav-item active">Character</div>
+      <div class="ds-nav-item">Covenants</div>
+      <div class="ds-nav-item">Lore</div>
+      <div class="ds-nav-item">Archives</div>
+      <div class="ds-nav-item">Bonfire</div>
+    </div>
+  </div>
+
+  <div class="ds-body">
+
+    <div class="left-col">
+      <div class="portrait-panel">
+        <div class="portrait-frame">
+          <svg width="100%" height="100%" viewBox="0 0 130 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <radialGradient id="eg" cx="50%" cy="60%" r="45%"><stop offset="0%" stop-color="#c8792a" stop-opacity="0.2"/><stop offset="100%" stop-color="#0a0807" stop-opacity="0"/></radialGradient>
+              <radialGradient id="sg" cx="50%" cy="20%" r="40%"><stop offset="0%" stop-color="#4a8fa8" stop-opacity="0.13"/><stop offset="100%" stop-color="#0a0807" stop-opacity="0"/></radialGradient>
+            </defs>
+            <rect width="130" height="160" fill="#0a0807"/>
+            <rect width="130" height="160" fill="url(#sg)"/>
+            <rect width="130" height="160" fill="url(#eg)"/>
+            <path d="M20 160 L65 80 L110 160 Z" fill="#141009" opacity="0.6"/>
+            <path d="M38 155 L42 115 Q45 100 65 95 Q85 100 88 115 L92 155 Z" fill="#1a1208"/>
+            <path d="M58 88 Q60 92 65 93 Q70 92 72 88 L70 80 Q65 82 60 80 Z" fill="#b89060" opacity="0.45"/>
+            <ellipse cx="65" cy="68" rx="20" ry="22" fill="#1a1208"/>
+            <ellipse cx="65" cy="67" rx="14" ry="16" fill="#c4a070" opacity="0.38"/>
+            <path d="M44 61 Q48 48 65 51 Q82 48 86 61 Q88 72 86 78 Q83 58 65 59 Q47 58 44 78 Z" fill="#120e06"/>
+            <ellipse cx="58" cy="65" rx="3.5" ry="3" fill="#0d0a06"/>
+            <ellipse cx="72" cy="65" rx="3.5" ry="3" fill="#0d0a06"/>
+            <ellipse cx="58" cy="64.5" rx="2" ry="2" fill="#1e2e3e"/>
+            <ellipse cx="72" cy="64.5" rx="2" ry="2" fill="#1e2e3e"/>
+            <ellipse cx="58.8" cy="63.8" rx="0.7" ry="0.7" fill="#6090a0" opacity="0.6"/>
+            <ellipse cx="72.8" cy="63.8" rx="0.7" ry="0.7" fill="#6090a0" opacity="0.6"/>
+            <path d="M61 74 Q65 76.5 69 74" stroke="#8a5030" stroke-width="0.9" fill="none"/>
+            <path d="M70 60 L74 70" stroke="#6a3818" stroke-width="0.8" opacity="0.5"/>
+            <path d="M42 110 Q35 120 32 145 L38 147 Q40 125 46 115 Z" fill="#1a1208"/>
+            <path d="M88 110 Q95 120 98 145 L92 147 Q90 125 84 115 Z" fill="#1a1208"/>
+            <path d="M55 102 L60 122 L65 118 L70 122 L75 102" fill="#1e1408"/>
+            <rect x="0" y="125" width="130" height="35" fill="url(#eg)" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="portrait-info">
+          <div class="char-name">PACO</div>
+          <div class="char-title">Bearer of the Curse</div>
+          <div class="micro-label">Humanity</div>
+          <div class="humanity-row" id="humanity-row"></div>
+          <div class="micro-label">Estus Flask</div>
+          <div class="estus-row" id="estus-row"></div>
+        </div>
+      </div>
+      <div class="stats-panel">
+        <div class="sect-label">Attributes</div>
+        <div id="ds-stats"></div>
+      </div>
+    </div>
+
+    <div class="center-top panel">
+      <div class="rune-corner rune-tl"></div><div class="rune-corner rune-tr"></div>
+      <div>
+        <div class="ds-inscription">Today's Intention</div>
+        <input class="ds-intention-input" type="text" placeholder="Seek the next bonfire...">
+        <div class="quote-block">"Embers fade, but the Undead persist.<br>Light the fire within."</div>
+      </div>
+      <div>
+        <div class="ds-inscription">Vitals</div>
+        <div class="vitals-grid" id="vitals-grid"></div>
+      </div>
+    </div>
+
+    <div class="center-habits panel">
+      <div class="rune-corner rune-tl"></div><div class="rune-corner rune-tr"></div>
+      <div class="sect-label">Morning Rites</div>
+      <div class="habits-grid" id="habits-grid"></div>
+    </div>
+
+    <div class="center-quests">
+      <div class="covenants-label">Active Covenants</div>
+      <div class="covenants-grid" id="covenants-grid"></div>
+    </div>
+
+    <div class="right-col">
+      <div class="souls-panel">
+        <div class="rune-corner rune-tl"></div><div class="rune-corner rune-tr"></div>
+        <div class="sect-label">Souls Gathered</div>
+        <div class="souls-count" id="souls-count">0</div>
+        <div class="souls-label">experience points</div>
+        <div class="souls-bar-bg"><div class="souls-bar-fill" id="souls-bar" style="width:0%"></div></div>
+        <div class="bonfire-label" id="bonfire-label">Next rank at <span>500</span></div>
+        <div class="micro-label">Current Rank</div>
+        <div class="rank-name" id="rank-name">Undead</div>
+      </div>
+      <div class="offering-panel">
+        <div class="sect-label">Offer Souls</div>
+        <div class="offering-grid" id="offer-btns"></div>
+      </div>
+      <div class="inv-panel">
+        <div class="sect-label">Inventory</div>
+        <div class="inv-grid" id="inv-grid"></div>
+      </div>
+    </div>
+
+    <div class="epitaph">
+      <div class="epitaph-text">Praise the Sun &nbsp;·&nbsp; Kindle the Ember &nbsp;·&nbsp; Link the Fire</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SAVE_KEY = 'ds_dashboard_v1';
+
+let humanityLit = 0, estusCount = 5, totalSouls = 0;
+
+const habits = [
+  { label: 'Train the body',   xp: 25, done: false },
+  { label: 'Seek knowledge',   xp: 20, done: false },
+  { label: 'Drink thy water',  xp: 10, done: false },
+  { label: 'Eat with purpose', xp: 15, done: false },
+  { label: 'Plan the quest',   xp: 10, done: false },
+  { label: 'Rest and recover', xp: 10, done: false },
+];
+
+const ranks = [
+  {name:'Undead',at:0},{name:'Hollow',at:500},{name:'Warrior',at:1500},
+  {name:'Knight',at:3500},{name:'Champion',at:7000},{name:'Lord',at:13000},
+  {name:'Ashen One',at:22000},{name:'Lord of Cinder',at:35000},
+];
+
+function getCurrentRank(xp) { let r=ranks[0]; for(const k of ranks){if(xp>=k.at)r=k;else break;} return r; }
+function getNextRank(xp)    { for(const k of ranks){if(xp<k.at)return k;} return null; }
+
+function saveState() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({
+    humanityLit, estusCount, totalSouls,
+    habits: habits.map(h=>h.done),
+    intention: document.querySelector('.ds-intention-input')?.value||'',
+    lastSaved: new Date().toDateString(),
+  })); } catch(e){}
+}
+
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (!s) return null;
+    if (s.lastSaved !== new Date().toDateString()) s.habits = habits.map(()=>false);
+    return s;
+  } catch(e){ return null; }
+}
+
+function buildHumanity() {
+  const row = document.getElementById('humanity-row'); row.innerHTML='';
+  for(let i=0;i<9;i++){
+    const d=document.createElement('div');
+    d.className='humanity-dot'+(i<humanityLit?' lit':'');
+    d.onclick=()=>{ humanityLit=humanityLit===i+1?0:i+1; buildHumanity(); saveState(); };
+    row.appendChild(d);
+  }
+}
+
+function buildEstus() {
+  const row=document.getElementById('estus-row'); row.innerHTML='';
+  for(let i=0;i<5;i++){
+    const f=document.createElement('div');
+    f.className='estus-flask'+(i<estusCount?' full':'');
+    f.innerHTML=`<svg width="12" height="16" viewBox="0 0 12 16"><path d="M4 1 L8 1 L9 3 L9 12 Q9 15 6 15 Q3 15 3 12 L3 3 Z" fill="${i<estusCount?'#c8792a':'#1a1408'}" stroke="#7a4418" stroke-width="0.6"/><rect x="4" y="5" width="4" height="1.2" fill="rgba(232,160,80,0.35)" rx="0.5"/></svg>`;
+    f.onclick=()=>{ estusCount=estusCount===i+1?i:i+1; buildEstus(); saveState(); };
+    row.appendChild(f);
+  }
+}
+
+function buildStats() {
+  const c=document.getElementById('ds-stats'); c.innerHTML='';
+  [{name:'Vitality',val:10,max:99,color:'#8c2020'},{name:'Endurance',val:10,max:99,color:'#4a8fa8'},
+   {name:'Strength',val:10,max:99,color:'#7a4418'},{name:'Dexterity',val:10,max:99,color:'#5a8c48'},
+   {name:'Intelligence',val:10,max:99,color:'#3a5c80'},{name:'Faith',val:10,max:99,color:'#c4b48a'}]
+  .forEach(s=>{ const p=Math.round((s.val/s.max)*100);
+    c.innerHTML+=`<div class="ds-stat"><div class="ds-stat-head"><span class="ds-stat-name">${s.name}</span><span class="ds-stat-val">${s.val}</span></div><div class="ds-bar-bg"><div class="ds-bar-fill" style="width:${p}%;background:${s.color};opacity:0.75;"></div></div></div>`;
+  });
+}
+
+function buildVitals() {
+  const g=document.getElementById('vitals-grid'); g.innerHTML='';
+  [{name:'HP',val:70,color:'#8c2020'},{name:'Stamina',val:55,color:'#3a5c30'},
+   {name:'Focus',val:65,color:'#3a5c80'},{name:'Fire',val:75,color:'#7a4418'}]
+  .forEach(v=>{ g.innerHTML+=`<div class="vital-card"><div class="vital-name">${v.name}</div><div class="vital-bar"><div style="height:100%;width:${v.val}%;background:${v.color};opacity:0.8;"></div></div></div>`; });
+}
+
+function renderHabits() {
+  const grid=document.getElementById('habits-grid'); grid.innerHTML='';
+  habits.forEach(h=>{
+    const el=document.createElement('div'); el.className='habit-row';
+    el.innerHTML=`<div class="habit-sigil ${h.done?'lit':''}"></div><span class="habit-label ${h.done?'done':''}">${h.label}</span><span class="habit-souls">+${h.xp}</span>`;
+    el.onclick=()=>{ h.done=!h.done; totalSouls=Math.max(0,totalSouls+(h.done?h.xp:-h.xp)); updateSouls(); renderHabits(); saveState(); };
+    grid.appendChild(el);
+  });
+}
+
+function buildCovenants() {
+  const g=document.getElementById('covenants-grid'); g.innerHTML='';
+  [{type:'Body',name:'Daily training ritual',color:'#8c2020',streak:0,target:7},
+   {type:'Mind',name:'Forbidden knowledge',color:'#3a5c80',streak:0,target:7},
+   {type:'Nourish',name:'Feed the vessel',color:'#3a5c30',streak:0,target:7},
+   {type:'Forge',name:'The 3D Forge quest',color:'#7a4418',streak:0,target:5}]
+  .forEach(c=>{ const p=Math.round((c.streak/c.target)*100);
+    g.innerHTML+=`<div class="quest-stone"><div class="quest-type" style="color:${c.color};">${c.type}</div><div class="quest-name">${c.name}</div><div class="quest-progress-bg"><div class="quest-progress-fill" style="width:${p}%;background:${c.color};"></div></div><div class="quest-tally">${c.streak}/${c.target} days</div></div>`;
+  });
+}
+
+function buildOfferings() {
+  const cont=document.getElementById('offer-btns'); cont.innerHTML='';
+  [{label:'+10 Habit',val:10},{label:'+20 Knowledge',val:20},{label:'+25 Combat',val:25},
+   {label:'+15 Nourish',val:15},{label:'+20 Quest',val:20}]
+  .forEach(o=>{ const b=document.createElement('button'); b.className='offering-btn'; b.textContent=o.label;
+    b.onclick=()=>{ totalSouls+=o.val; updateSouls(); saveState(); }; cont.appendChild(b); });
+  const nd=document.createElement('button'); nd.className='offering-btn'; nd.textContent='+ New Day';
+  nd.style.cssText='border-color:var(--ember-dim);color:var(--ember-dim);';
+  nd.onclick=()=>{ if(!confirm('Kindle a new day? Morning Rites will reset.'))return; habits.forEach(h=>h.done=false); renderHabits(); saveState(); };
+  cont.appendChild(nd);
+}
+
+function buildInventory() {
+  const svgs={sword:'<line x1="8" y1="4" x2="8" y2="20" stroke="#7a6030" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="10" x2="11" y2="10" stroke="#7a6030" stroke-width="1.5"/>',shield:'<path d="M8 3 L13 5.5 L13 11.5 Q13 16 8 18 Q3 16 3 11.5 L3 5.5 Z" stroke="#7a6030" stroke-width="1" fill="none"/>',ring:'<circle cx="8" cy="11" r="5.5" stroke="#7a6030" stroke-width="1" fill="none"/><circle cx="8" cy="11" r="2" fill="#3a2a10"/>',flask:'<path d="M5.5 3 L10.5 3 L10.5 5.5 L13 11 L13 15.5 Q13 18 8 18 Q3 18 3 15.5 L3 11 L5.5 5.5 Z" stroke="#7a4418" stroke-width="0.8" fill="rgba(200,121,42,0.18)"/>',scroll:'<rect x="3.5" y="4" width="9" height="13" rx="1" stroke="#7a6030" stroke-width="0.9" fill="none"/>',key:'<circle cx="6" cy="8" r="3.5" stroke="#c8792a" stroke-width="0.9" fill="none"/><line x1="9.5" y1="8" x2="15" y2="8" stroke="#c8792a" stroke-width="0.9"/>',ember:'<path d="M8 3 Q11 7 11 11 Q11 16 8 18 Q5 16 5 11 Q5 7 8 3 Z" stroke="#7a4418" stroke-width="0.8" fill="rgba(200,121,42,0.18)"/>',bone:'<line x1="5" y1="5" x2="13" y2="17" stroke="#7a6030" stroke-width="1.5" stroke-linecap="round"/>',empty:''};
+  const g=document.getElementById('inv-grid'); g.innerHTML='';
+  ['sword','shield','ring','flask','scroll','key','ember','bone','empty'].forEach(item=>{
+    const s=document.createElement('div'); s.className='inv-slot';
+    s.innerHTML=`<svg width="20" height="20" viewBox="0 0 16 22" xmlns="http://www.w3.org/2000/svg">${svgs[item]}</svg>`;
+    g.appendChild(s);
+  });
+}
+
+function updateSouls() {
+  document.getElementById('souls-count').textContent=totalSouls;
+  const cur=getCurrentRank(totalSouls), next=getNextRank(totalSouls);
+  const pct=next?Math.min(Math.round(((totalSouls-cur.at)/(next.at-cur.at))*100),100):100;
+  document.getElementById('souls-bar').style.width=pct+'%';
+  document.getElementById('rank-name').textContent=cur.name;
+  document.getElementById('bonfire-label').innerHTML=next?`Next rank at <span>${next.at}</span>`:`<span>Maximum rank achieved</span>`;
+}
+
+// ── INIT ──
+buildHumanity(); buildEstus(); buildStats(); buildVitals(); buildCovenants(); buildOfferings(); buildInventory();
+
+const saved=loadState();
+if(saved){
+  totalSouls=saved.totalSouls||0; humanityLit=saved.humanityLit||0;
+  estusCount=saved.estusCount!==undefined?saved.estusCount:5;
+  if(saved.habits) saved.habits.forEach((done,i)=>{ if(habits[i]) habits[i].done=done; });
+  if(saved.intention){ const inp=document.querySelector('.ds-intention-input'); if(inp) inp.value=saved.intention; }
+  buildHumanity(); buildEstus();
+}
+
+renderHabits(); updateSouls();
+document.querySelector('.ds-intention-input').addEventListener('input', saveState);
+</script>
+</body>
+</html>
