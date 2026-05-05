@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/stats", "destination": "/api/stats.js" }
+  ]
+}
