@@ -360,11 +360,22 @@ async function loadData() {
   try {
     const r = await fetch('/api/registro');
     const d = await r.json();
+    if (!r.ok || d.error) {
+      const root = document.getElementById('content');
+      root.outerHTML = `<div id="content" class="empty">Error: ${escapeHtml(d.error || 'HTTP ' + r.status)}</div>`;
+      return;
+    }
     ITEMS = d.items || [];
     renderSummary();
+    if (ITEMS.length === 0) {
+      const root = document.getElementById('content');
+      const fecha = d.today || '?';
+      root.outerHTML = `<div id="content" class="empty">Sin hábitos para ${fecha}</div>`;
+      return;
+    }
     renderList();
   } catch(e) {
-    document.getElementById('content').textContent = 'Error al cargar';
+    document.getElementById('content').textContent = 'Error de red';
   }
 }
 
