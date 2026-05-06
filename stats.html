@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stats Bars</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+:root {
+  color-scheme: dark light;
+  --text-primary: #e3e3e3;
+  --text-secondary: #888;
+  --text-muted: #555;
+  --text-accent: #d4c5a0;
+  --rune: rgba(212,197,160,0.55);
+  --bar-bg: rgba(255,255,255,0.06);
+  --bar-fill: #d4c5a0;
+  --divider: rgba(212,197,160,0.18);
+}
+
+[data-theme="light"] {
+  --text-primary: #1a1a1a;
+  --text-secondary: #888;
+  --text-muted: #aaa;
+  --text-accent: #8B6914;
+  --rune: rgba(139,105,20,0.55);
+  --bar-bg: rgba(0,0,0,0.06);
+  --bar-fill: #8B6914;
+  --divider: rgba(139,105,20,0.25);
+}
+
+[data-theme="sepia"] {
+  --text-primary: #2c1a0e;
+  --text-secondary: #8a6a4a;
+  --text-muted: #b09070;
+  --text-accent: #6B4423;
+  --rune: rgba(107,68,35,0.55);
+  --bar-bg: rgba(107,68,35,0.08);
+  --bar-fill: #6B4423;
+  --divider: rgba(107,68,35,0.25);
+}
+
+body {
+  font-family: 'Playfair Display', Georgia, serif;
+  color: var(--text-primary);
+  padding: 18px 22px 14px;
+}
+
+.theme-switcher {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+.theme-switcher:hover { opacity: 1; }
+.theme-btn {
+  width: 9px; height: 9px; border-radius: 50%;
+  border: none; cursor: pointer; transition: transform 0.15s;
+}
+.theme-btn:hover, .theme-btn.active { transform: scale(1.4); }
+.theme-btn[data-t="dark"]  { background: #2c2c2a; border: 1px solid #666; }
+.theme-btn[data-t="light"] { background: #f5f4ef; border: 1px solid #ccc; }
+.theme-btn[data-t="sepia"] { background: #e8d5b7; border: 1px solid #b09070; }
+
+.wrap {
+  position: relative;
+  padding: 14px 12px 10px;
+}
+
+/* Corner brackets sutiles */
+.rune { position: absolute; width: 12px; height: 12px; }
+.rune-tl { top: 0; left: 0;     border-top: 1px solid var(--rune); border-left: 1px solid var(--rune); }
+.rune-tr { top: 0; right: 0;    border-top: 1px solid var(--rune); border-right: 1px solid var(--rune); }
+.rune-bl { bottom: 0; left: 0;  border-bottom: 1px solid var(--rune); border-left: 1px solid var(--rune); }
+.rune-br { bottom: 0; right: 0; border-bottom: 1px solid var(--rune); border-right: 1px solid var(--rune); }
+
+.sect-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.35em;
+  color: var(--text-accent);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sect-label::after { content: ''; flex: 1; height: 1px; background: var(--divider); }
+
+.stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.stat-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-weight: 300;
+}
+
+.stat-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text-accent);
+  font-weight: 400;
+}
+
+.bar-track {
+  height: 1px;
+  background: var(--bar-bg);
+  position: relative;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--bar-fill);
+  width: 0;
+  transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.loading {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 20px 0;
+  text-transform: uppercase;
+}
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="theme-switcher" role="group" aria-label="Tema del widget">
+  <button class="theme-btn active" data-t="dark"  title="Oscuro"    onclick="setTheme('dark')"></button>
+  <button class="theme-btn"        data-t="light" title="Claro"     onclick="setTheme('light')"></button>
+  <button class="theme-btn"        data-t="sepia" title="Editorial" onclick="setTheme('sepia')"></button>
+</div>
+
+<div class="wrap">
+  <span class="rune rune-tl"></span>
+  <span class="rune rune-tr"></span>
+  <span class="rune rune-bl"></span>
+  <span class="rune rune-br"></span>
+
+  <div class="sect-label">Stats</div>
+
+  <div id="content" class="loading">Cargando...</div>
+</div>
+
+<script>
+function setTheme(t) {
+  document.body.setAttribute('data-theme', t);
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.t === t));
+  try { localStorage.setItem('stats_theme', t); } catch(e) {}
+}
+try {
+  const saved = localStorage.getItem('stats_theme');
+  if (saved) setTheme(saved);
+} catch(e) {}
+
+const STATS = [
+  { key: 'fisico',    label: 'Físico',    max: 500 },
+  { key: 'mente',     label: 'Mente',     max: 500 },
+  { key: 'nutricion', label: 'Nutrición', max: 500 },
+  { key: 'habitos',   label: 'Hábitos',   max: 500 },
+  { key: 'negocio',   label: 'Negocio',   max: 500 },
+];
+
+async function loadData() {
+  try {
+    const res = await fetch('/api/stats');
+    const d = await res.json();
+
+    let html = '<div class="stats-list">';
+    STATS.forEach(s => {
+      const val = d[s.key] || 0;
+      const pct = Math.min(Math.round((val / s.max) * 100), 100);
+      html += `
+        <div class="stat-item">
+          <div class="stat-head">
+            <span class="stat-name">${s.label}</span>
+            <span class="stat-val">${val}</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" data-pct="${pct}"></div>
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+
+    document.getElementById('content').outerHTML = `<div id="content">${html}</div>`;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.bar-fill').forEach(b => {
+          b.style.width = (b.dataset.pct || 0) + '%';
+        });
+      });
+    });
+  } catch(e) {
+    document.getElementById('content').textContent = 'Error al cargar';
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>

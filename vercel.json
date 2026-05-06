@@ -2,6 +2,8 @@
   "version": 2,
   "rewrites": [
     { "source": "/api/stats", "destination": "/api/stats.js" },
-    { "source": "/personaje", "destination": "/personaje.html" }
+    { "source": "/api/debug", "destination": "/api/debug.js" },
+    { "source": "/personaje", "destination": "/personaje.html" },
+    { "source": "/stats", "destination": "/stats.html" }
   ]
 }
