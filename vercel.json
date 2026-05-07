@@ -9,5 +9,11 @@
     { "source": "/api/sync-misiones", "destination": "/api/sync-misiones.js" },
     { "source": "/personaje",         "destination": "/personaje.html" },
     { "source": "/registro",          "destination": "/registro.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/sync-misiones",
+      "schedule": "0 5 * * *"
+    }
   ]
 }
