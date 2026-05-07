@@ -108,6 +108,18 @@ export async function computeMisiones(token) {
       ? Math.round((xpAcumulado / xpTargetRound) * 100)
       : 0;
 
+    // Veces Target (opcional): si está definido, se usa para progreso honesto
+    // (count completadosTotal vs target). Si no, fallback a progresoVsRound.
+    const vecesTarget = m.properties?.['Veces Target']?.number || 0;
+    const progresoVsTarget = vecesTarget > 0
+      ? Math.round((completadosTotal / vecesTarget) * 100)
+      : null;
+
+    // Progreso final que se usa en sync (capeado a 100)
+    const progresoFinal = vecesTarget > 0
+      ? Math.min(100, progresoVsTarget)
+      : Math.min(100, progresoVsRound);
+
     return {
       id: m.id,
       titulo: m.properties?.['Misión']?.title?.[0]?.plain_text || '(sin título)',
@@ -120,6 +132,9 @@ export async function computeMisiones(token) {
       xpAcumulado,
       xpTargetRound,
       progresoVsRound,
+      vecesTarget,           // 0 si no está definido
+      progresoVsTarget,      // null si no hay target
+      progresoFinal,         // el que se usa en sync (capeado a 100)
       habitosCount: habitos.length,
       completadosTotal,
       habitos: habitosDetalle,

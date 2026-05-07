@@ -26,7 +26,8 @@ export default async function handler(req, res) {
         continue;
       }
 
-      const progresoCalc = Math.min(100, m.progresoVsRound);
+      // Usar progresoFinal del cálculo (respeta Veces Target si está definido)
+      const progresoCalc = m.progresoFinal ?? Math.min(100, m.progresoVsRound);
       const progresoActual = m.progresoManual;
 
       // Solo PATCH si cambió (evita escrituras innecesarias)

@@ -24,6 +24,19 @@ html, body {
   --divider: rgba(255,255,255,0.08);
   --rank-color: #a89070;
   --level-color: #e3e3e3;
+  --humanity-on:  #d4c5a0;
+  --humanity-off: rgba(255,255,255,0.15);
+  --humanity-warn: #b06868;
+}
+
+/* Estado Hueco: todo se vuelve gris-frio, sin dorado */
+body.hueco {
+  --text-primary: #888;
+  --text-accent: #777;
+  --rank-color: #666;
+  --level-color: #777;
+  --bar-fill: #555;
+  --humanity-on: #555;
 }
 
 [data-theme="light"] {
@@ -215,6 +228,48 @@ body {
   letter-spacing: 0.15em;
   padding: 8px 0;
 }
+
+/* Humanity section */
+.humanity-section {
+  grid-column: 1 / -1;
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.humanity-label {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-family: 'DM Mono', monospace;
+  font-weight: 300;
+}
+
+.humanity-pips {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--humanity-off);
+  transition: background 0.3s;
+}
+.pip.on { background: var(--humanity-on); }
+
+.humanity-state {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-accent);
+}
+body.hueco .humanity-state { color: var(--humanity-warn); }
 </style>
 </head>
 <body data-theme="dark">
@@ -240,6 +295,28 @@ try {
   const saved = localStorage.getItem('hud_theme');
   if (saved) setTheme(saved);
 } catch(e) {}
+
+function renderHumanity(value, estado) {
+  const max = 5;
+  const v = Math.max(0, Math.min(max, value));
+  let pips = '';
+  for (let i = 0; i < max; i++) {
+    pips += `<span class="pip ${i < v ? 'on' : ''}"></span>`;
+  }
+  return `
+    <div class="humanity-section">
+      <span class="humanity-label">Humanidad</span>
+      <span class="humanity-pips">${pips}</span>
+      <span class="humanity-state">${escapeHtml(estado)}</span>
+    </div>
+  `;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
 
 async function loadData() {
   try {
@@ -277,6 +354,8 @@ async function loadData() {
         </div>
       </div>
 
+      ${renderHumanity(d.humanidad ?? 0, d.estadoPersonaje || '🪙 Humano')}
+
       <div class="footer">
         <div class="footer-stat">
           <div class="footer-val">${d.xpTotal}</div>
@@ -292,6 +371,9 @@ async function loadData() {
         </div>
       </div>
     `;
+
+    // Estado HUECO cambia paleta del HUD
+    document.body.classList.toggle('hueco', (d.humanidad ?? 0) === 0);
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
