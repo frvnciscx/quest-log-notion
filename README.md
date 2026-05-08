@@ -190,7 +190,10 @@ Este repositorio usa **dual license**:
 
 ### Licencia comercial
 
-¿Querés comercializar usando el blueprint? Contactá: **fvazquez@procomi.com**
+¿Querés comercializar usando el blueprint? Contactá:
+
+- **Email**: contacto.fxv@gmail.com
+- **GitHub Issue**: abrí un issue en [el repo](https://github.com/frvnciscx/quest-log-notion/issues) con título `[Commercial License]`
 
 ---
 
@@ -216,7 +219,7 @@ Lista completa en [BLUEPRINT sección 9](./BLUEPRINT_GAMIFICATION_NOTION.md#9-re
 - Código → [MIT](./LICENSE)
 - Documentación → [CC BY-NC 4.0](./LICENSE-DOCS.md)
 
-Para comercialización del blueprint completo, contactar a fvazquez@procomi.com.
+Para comercialización del blueprint completo: contacto.fxv@gmail.com o issue en GitHub.
 
 ---
 

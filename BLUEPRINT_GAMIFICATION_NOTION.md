@@ -559,7 +559,10 @@ Este blueprint está bajo **CC BY-NC 4.0** (Creative Commons Attribution-NonComm
 - Incluirlo en cursos pagados o coaching comercial
 - Cualquier uso comercial directo o indirecto
 
-**Para licencia comercial**: contactar a **fvazquez@procomi.com**.  
+**Para licencia comercial**, contactar por:
+- **Email**: contacto.fxv@gmail.com
+- **GitHub Issue**: [github.com/frvnciscx/quest-log-notion/issues](https://github.com/frvnciscx/quest-log-notion/issues) con título `[Commercial License]`
+
 Términos razonables disponibles para emprendedores y creators.
 
 **Atribución sugerida**:

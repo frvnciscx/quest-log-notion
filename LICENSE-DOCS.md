@@ -39,9 +39,12 @@ Under the following terms:
 ## Commercial licensing
 
 For commercial use of the documentation or blueprint (Tier Pro / Premium templates,
-SaaS products, paid courses, etc.), please contact:
+SaaS products, paid courses, etc.), please contact through one of these channels:
 
-**Francisco Vázquez** — fvazquez@procomi.com
+- **Email**: contacto.fxv@gmail.com
+- **GitHub Issue**: open a public issue at
+  [github.com/frvnciscx/quest-log-notion/issues](https://github.com/frvnciscx/quest-log-notion/issues)
+  with title prefix `[Commercial License]`
 
 Custom commercial licenses available with reasonable terms.
 
