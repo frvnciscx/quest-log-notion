@@ -5,7 +5,7 @@
 > Probado con tema Dark Souls; adaptable a fantasía clásica, sci-fi, jardín wholesome, minimalismo y cualquier otra temática.
 
 **Versión**: 2.0 — Mayo 2026  
-**Implementación de referencia**: github.com/frvnciscx/widget_radar · widgetradar.vercel.app
+**Implementación de referencia**: github.com/frvnciscx/quest-log-notion · widgetradar.vercel.app
 
 ---
 
@@ -73,12 +73,20 @@ Para los Evitar, el lenguaje del estado se invierte:
 
 ### 2.4 Pool de Integridad (recurso protegido)
 - Pool inicial: **5** (cap superior 5, cap inferior 0)
-- **Cae −1** al fallar un hábito Evitar
-- **Sube +1** al revertir un fallo (anti-doble-conteo)
+- **Cae −1** al fallar un hábito Evitar (sin hoguera)
+- **Sube +1** al revertir un fallo / al completar misión Épica al 100% (anti-doble-conteo con flag)
 - Estados visuales: Pleno (5) / Comprometido (1–4) / Drenado (0)
 - En estado Drenado, los widgets cambian a paleta apagada (señal visual de urgencia)
 
 > Esta es la mecánica diferenciadora. Le da peso emocional al sistema: cuando caés, hay consecuencia.
+
+### 2.4b Hogueras (excepciones autorizadas)
+- Pool semanal: **4** hogueras (cap)
+- Reset automático: cada lunes el cron-daily las restaura a 4
+- Uso: cuando vas a fallar un hábito Evitar, podés "usar hoguera" → cuesta −1 Hoguera en lugar de −1 Integridad
+- Si pool=0, el flag se ignora y costó Integridad
+
+> Filosofía: reconoce que la vida tiene excepciones legítimas (cumpleaños, viajes, eventos sociales). Permite descansar la disciplina **conscientemente y limitado**. Si gastás las 4 en una semana, las próximas caídas vuelven a costar Integridad.
 
 ### 2.5 Frecuencia de Hábitos
 Resuelve el problema de hábitos no-diarios (ej: "post en redes 1×/semana"):
@@ -487,13 +495,15 @@ La mayoría de "habit tracker en Notion" son:
 | Streak romántico (todo o nada) | Veces Target honesto (progreso medible) |
 | Un solo "look" rígido | **5 temas intercambiables + guía para crear el tuyo** |
 
-**5 ideas únicas que no encontrás en otros templates:**
+**6 ideas únicas que no encontrás en otros templates:**
 
 1. **Pool de Integridad como recurso narrativo**: castiga falla en Hábitos Evitar, se recupera con disciplina. Le da peso emocional al sistema.
 2. **Hábitos Evitar como tipo formal**: los demás templates te hacen escribir "Sin azúcar" como hábito normal y te confunden con la lógica al revés. Aquí está formalizado en el modelo de datos.
-3. **Honestidad numérica**: el cálculo `Veces Target` evita el "100% en 3 días" engañoso de otros sistemas.
-4. **Estética intercambiable**: 5 temas pre-diseñados + guía para tu propio tema. La mecánica es universal, la narrativa la elegís vos.
-5. **Auto-reparación + dedupe**: cualquier sistema con automatización (Make/Zapier/n8n) tarde o temprano genera entradas incompletas o duplicadas. Este blueprint incluye `/api/repair-registros` + `/api/dedupe-registros` como endpoints de mantenimiento. Ningún template Notion en el mercado los tiene.
+3. **Hogueras (excepciones autorizadas)**: 4 por semana, absorben caídas legítimas (cumpleaños, vacaciones) sin destruir tu Integridad. Reconoce que la vida tiene matices — la mayoría de templates te castigan rígidamente por contextos sociales normales. Reset automático cada lunes.
+4. **Honestidad numérica**: el cálculo `Veces Target` evita el "100% en 3 días" engañoso de otros sistemas.
+5. **Estética intercambiable**: 5 temas pre-diseñados + guía para tu propio tema. La mecánica es universal, la narrativa la elegís vos.
+6. **Auto-reparación + dedupe**: cualquier sistema con automatización (Make/Zapier/n8n) tarde o temprano genera entradas incompletas o duplicadas. Este blueprint incluye `/api/repair-registros` + `/api/dedupe-registros` + `/api/cron-daily` como endpoints de mantenimiento. Ningún template Notion en el mercado los tiene.
+7. **Bonus por Misión Épica**: al completar una misión de Dificultad Épica al 100%, el sistema suma automáticamente +1 a Humanidad (con anti-doble-conteo). Recompensa narrativa proporcional al esfuerzo.
 
 ---
 
@@ -538,5 +548,5 @@ const progresoFinal = vecesTarget > 0
 Este blueprint puede ser utilizado, modificado y comercializado libremente.  
 Si lo usás como base de un producto comercial, una mención en docs/about es apreciada pero no obligatoria.
 
-**Implementación de referencia**: github.com/frvnciscx/widget_radar  
+**Implementación de referencia**: github.com/frvnciscx/quest-log-notion  
 **Versión 2.0** — Mayo 2026 (refactor multi-tema)

@@ -84,8 +84,8 @@ Notion → Settings → Connections → Develop or manage connections → New in
 
 **3. Deploy a Vercel**
 ```bash
-git clone https://github.com/frvnciscx/widget_radar.git
-cd widget_radar
+git clone https://github.com/frvnciscx/quest-log-notion.git
+cd quest-log-notion
 vercel deploy
 ```
 En el dashboard de Vercel, agregá la env var: `NOTION_TOKEN = ntn_...`
@@ -120,9 +120,9 @@ const CATALOGO_DB  = 'TU_ID_AQUI';
 
 | Endpoint | Método | Función | Devuelve |
 |----------|--------|---------|----------|
-| `/api/stats` | GET | Personaje + atributos + integridad | `{ fisico, mente, ..., xpTotal, nivel, rango, humanidad, estadoPersonaje }` |
-| `/api/registro` | GET | Hábitos del día (TZ del usuario) | `{ today, count, items[] }` |
-| `/api/habit-toggle` | POST | Cambiar estado de un hábito | `{ ok, estado, humanidad: { delta, before, after } }` |
+| `/api/stats` | GET | Personaje + atributos + integridad + hogueras | `{ fisico, mente, ..., xpTotal, nivel, rango, humanidad, estadoPersonaje, hogueras, hogueras_max }` |
+| `/api/registro` | GET | Hábitos del día (TZ del usuario) | `{ today, count, items[] }` con `esProhibido` flag por item |
+| `/api/habit-toggle` | POST | Cambiar estado + auto-Humanidad. Acepta `useHoguera: true` para usar excepción autorizada | `{ ok, estado, humanidad, hoguera }` |
 | `/api/misiones` | GET | Objetivos con progreso calculado | `{ count, misiones[] }` |
 | `/api/sync-misiones` | GET | Escribe progreso de objetivos a Notion | `{ updated, failed, skipped, updates[] }` |
 | `/api/repair-registros` | GET | Vincula relations faltantes (Personaje + Stat Ref). Soporta `?dry=1` para dry-run | `{ updated, skipped, errors, updates[] }` |
@@ -146,9 +146,11 @@ Vercel Hobby permite hasta 2 cron jobs; este endpoint combina ambas tareas en 1.
 - **Puntos / Nivel / Tier** — 500 puntos = 1 nivel, 8 tiers progresivos
 - **5 atributos** — dimensiones del personaje (5 hábitos los alimentan)
 - **Pool de Integridad** — recurso protegido (cap 0–5) que cae al fallar Hábitos Prohibidos
+- **Hogueras (excepciones autorizadas)** — 4 por semana, absorben caídas en Prohibidos sin gastar Integridad. Reset automático cada lunes
 - **Tipo de Hábito** — Construir (hacer) vs Evitar (dejar de hacer)
 - **Frecuencia** — Diario / Semanal / Eventual
 - **Veces Target** — métrica honesta para objetivos streak/count
+- **Bonus por Misión Épica** — al completar una misión 💀 Épica al 100%, +1 a Humanidad (cap 5) automáticamente
 
 ### Diferenciador
 A diferencia de habit trackers comunes:
@@ -161,7 +163,8 @@ A diferencia de habit trackers comunes:
 
 ## 📚 Documentación completa
 
-- **[`BLUEPRINT_GAMIFICATION_NOTION.md`](./BLUEPRINT_GAMIFICATION_NOTION.md)** — Guía completa de 425 líneas: filosofía, arquitectura, setup, 5 temas pre-diseñados, guía para crear tu tema, stack técnico, lecciones operativas y roadmap de comercialización.
+- **[`BLUEPRINT_GAMIFICATION_NOTION.md`](./BLUEPRINT_GAMIFICATION_NOTION.md)** — Guía completa: filosofía, arquitectura, setup, 5 temas pre-diseñados, guía para crear tu tema, stack técnico, lecciones operativas y roadmap de comercialización.
+- **[`BACKLOG.md`](./BACKLOG.md)** — Roadmap de features pendientes con priorización por valor real vs esfuerzo. Incluye antipatterns a evitar.
 - **[`CONTEXTO_COWORK.md`](./CONTEXTO_COWORK.md)** — Contexto interno de desarrollo (IDs, decisiones, historial de bugs).
 
 ---

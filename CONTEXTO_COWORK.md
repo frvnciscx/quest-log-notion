@@ -9,7 +9,7 @@ Los widgets viven en un repositorio de GitHub y se despliegan en Vercel.
 - **Backend**: Vercel Serverless Functions (Node.js)
 - **Base de datos**: Notion API
 - **Deploy**: Vercel (auto-deploy desde GitHub en cada push)
-- **Repo GitHub**: `frvnciscx/widget_radar`
+- **Repo GitHub**: `frvnciscx/quest-log-notion`
 - **URL producción**: `https://widgetradar.vercel.app`
 
 ## Carpeta local
@@ -26,7 +26,7 @@ radar-widget/
 │   ├── sync-misiones.js       ← POST escribe Progreso a Notion (exporta runSyncMisiones)
 │   ├── repair-registros.js    ← POST vincula Personaje + Stat Ref a registros sin relations (exporta runRepairRegistros)
 │   ├── dedupe-registros.js    ← POST archiva duplicados de un día (deja la entrada más completa por hábito)
-│   ├── cron-daily.js          ← Endpoint del cron: ejecuta repair → sync en orden
+│   ├── cron-daily.js          ← Endpoint del cron: repair → sync → reset Hogueras (lunes)
 │   └── debug.js               ← Dump raw JSON del Personaje
 ├── index.html                 ← Radar de stats (widget activo)
 ├── personaje.html             ← HUD nivel/XP/rango/Humanidad (widget activo)
@@ -101,12 +101,24 @@ Page ID del personaje principal (Paco): `357e89bc-3fee-81f7-a707-ccdde4a842ce`
 
 ### Humanidad (5 pips, cap 0–5)
 - Inicial: 5
-- **Cae −1**: al marcar un Prohibido como ❌ Omitido (automático via /api/habit-toggle)
-- **Sube +1**: revertir Omitido en Prohibido (automático). Reglas manuales pendientes: misión Épica completada, racha 3 días limpios.
+- **Cae −1**: al marcar un Prohibido como ❌ Omitido sin hoguera (automático via /api/habit-toggle)
+- **Sube +1**: 
+  - Revertir Omitido en Prohibido (automático)
+  - Completar misión 💀 Épica al 100% (automático via cron-daily, anti-doble-conteo con flag Humanidad Otorgada)
+  - Racha 3 días sin caer / fallar 3+ hábitos (manual por ahora — roadmap en BACKLOG.md)
 - Estados:
   - `🪙 Humano` — Humanidad ≥ 5
   - `🩸 Maldito` — Humanidad 1–4
   - `💀 Hueco` — Humanidad = 0 (HUD pasa a paleta gris)
+
+### Hogueras (excepciones autorizadas)
+- Pool semanal: **4 hogueras**, default
+- Reset automático: cada lunes el cron-daily setea Hogueras = 4
+- Uso: en `/api/habit-toggle` con `useHoguera: true` al marcar un Prohibido como Omitido
+  - Si quedan hogueras: −1 Hoguera, **Humanidad intacta**
+  - Si Hogueras = 0: el flag se ignora, costó −1 Humanidad
+- UI: widget /registro muestra contador "🔥 X/4" + botón 🔥 en Prohibidos (deshabilitado si pool=0)
+- Filosofía: reconoce que la vida tiene excepciones legítimas (cumpleaños, viajes), pero limitadas para evitar normalizar la falla
 
 ### Hábitos Prohibidos (campo Tipo en Catálogo)
 - `🟢 Construir` — hábitos positivos a hacer (10 actuales)
