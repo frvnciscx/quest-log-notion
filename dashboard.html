@@ -582,12 +582,21 @@ function escapeHtml(s) {
   }[c]));
 }
 
+/* ============= Curva de niveles (exponencial) =============
+ * Threshold acumulado para nivel N: 500 * (2^(N-1) - 1)
+ *  N=1: 0    | N=2: 500   | N=3: 1500  | N=4: 3500
+ *  N=5: 7500 | N=6: 15500 | N=7: 31500 | N=8: 63500
+ */
+function xpToReachLevel(n) { return 500 * (Math.pow(2, n - 1) - 1); }
+
 /* ============= HUD ============= */
 function renderHud(d) {
-  const cur = d.xpTotal % 500;
-  const pct = Math.round((cur / 500) * 100);
-  const toNext = 500 - cur;
-  const nextLevelTarget = (d.nivel || 1) * 500;
+  const nivel = d.nivel || 1;
+  const currentThreshold = xpToReachLevel(nivel);
+  const nextLevelTarget  = xpToReachLevel(nivel + 1);
+  const levelSize        = nextLevelTarget - currentThreshold;
+  const cur              = (d.xpTotal || 0) - currentThreshold;
+  const pct              = Math.round((cur / levelSize) * 100);
 
   // Mensaje contextual según estado
   const estado = d.estadoPersonaje || '🪙 Humano';
@@ -765,8 +774,13 @@ function renderCheckin() {
   let html = '<div class="list">';
   ITEMS.forEach(item => {
     const key = VALUE_TO_KEY[item.estado] || 'pendiente';
+    // 🔥 deshabilitado si: no quedan hogueras O el hábito ya está en Omitido (idempotente)
+    const hogueraBlocked = HOGUERAS.value <= 0 || item.estado === '❌ Omitido';
+    const hogueraTitle   = item.estado === '❌ Omitido'
+      ? 'Ya estás Omitido. Reverí a Pendiente primero para usar hoguera.'
+      : (HOGUERAS.value <= 0 ? 'Sin hogueras disponibles' : 'Caer pero usar hoguera');
     const hogueraBtn = item.esProhibido
-      ? `<button class="estado-btn" data-e="hoguera" title="Caer pero usar hoguera" ${HOGUERAS.value <= 0 ? 'disabled' : ''}>🔥</button>`
+      ? `<button class="estado-btn" data-e="hoguera" title="${hogueraTitle}" ${hogueraBlocked ? 'disabled' : ''}>🔥</button>`
       : '';
     html += `
       <div class="${rowClass(item.estado)}" data-id="${item.id}">
@@ -814,7 +828,10 @@ async function toggle(id, newEstado, rowEl, useHoguera = false) {
   const item = ITEMS.find(i => i.id === id);
   if (!item) return;
   const prev = item.estado;
-  if (prev === newEstado && !useHoguera) return;
+  // Idempotencia: si ya está en el estado destino, no hacer nada.
+  // Caso especial: si clickeás 🔥 con prev ya = Omitido, no descontar otra hoguera.
+  if (prev === newEstado) return;
+  if (useHoguera && prev === '❌ Omitido') return;
 
   item.estado = newEstado;
   renderSummary();

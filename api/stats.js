@@ -109,14 +109,23 @@ export default async function handler(req, res) {
     // --- XP TOTAL: suma manual robusta ---
     const xpTotal = xpFisico + xpMente + xpHabitos + xpNutricion + xpNegocio + xpAuto + xpHabitosAuto;
 
-    const nivel  = Math.floor(xpTotal / 500) + 1;
+    // --- CURVA DE NIVELES (exponencial: cada nivel necesita el doble del anterior) ---
+    // Threshold acumulado para nivel N: 500 * (2^(N-1) - 1)
+    //  N=1: 0     | N=2: 500   | N=3: 1500  | N=4: 3500
+    //  N=5: 7500  | N=6: 15500 | N=7: 31500 | N=8: 63500
+    const xpToReachLevel = (n) => 500 * (Math.pow(2, n - 1) - 1);
+    const levelFromXp    = (xp) => Math.floor(Math.log2(xp / 500 + 1)) + 1;
+
+    const nivel  = Math.max(1, levelFromXp(Math.max(0, xpTotal)));
     const rangos = ['💀 Iniciado','🗡️ Aprendiz','📖 Practicante','🛡️ Especialista','💎 Experto','🔥 Maestro','⚔️ Gran Maestro','👑 Leyenda'];
     const rango  = rangos[Math.min(nivel - 1, rangos.length - 1)];
 
-    const cur     = xpTotal - (Math.floor(xpTotal / 500) * 500);
-    const filled  = Math.floor(cur / 50);
-    const nextLevelTarget = nivel * 500;
-    const barraXP = `Nv.${nivel} ${'▰'.repeat(filled)}${'▱'.repeat(10 - filled)} ${xpTotal}/${nextLevelTarget} XP`;
+    const currentThreshold = xpToReachLevel(nivel);
+    const nextLevelTarget  = xpToReachLevel(nivel + 1);
+    const levelSize        = nextLevelTarget - currentThreshold;
+    const cur              = xpTotal - currentThreshold;
+    const filled           = Math.floor((cur / levelSize) * 10);
+    const barraXP          = `Nv.${nivel} ${'▰'.repeat(filled)}${'▱'.repeat(10 - filled)} ${xpTotal}/${nextLevelTarget} XP`;
 
     // --- STATS por categoría ---
     const statMap = {};

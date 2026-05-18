@@ -357,12 +357,16 @@ async function loadData() {
     const res = await fetch('/api/stats');
     const d = await res.json();
 
-    const cur = d.xpTotal % 500;
-    const pct = Math.round((cur / 500) * 100);
-    // Para siguiente nivel: XP que falta para llegar al próximo múltiplo de 500
-    const toNext = 500 - cur;
-    // Umbral del próximo nivel (XP total necesario): Nv.2 → 1000, Nv.3 → 1500, etc.
-    const nextLevelTarget = (d.nivel || 1) * 500;
+    // Curva exponencial: threshold acumulado para nivel N = 500 * (2^(N-1) - 1)
+    // N=1: 0 | N=2: 500 | N=3: 1500 | N=4: 3500 | N=5: 7500 | N=6: 15500
+    const xpToReachLevel = (n) => 500 * (Math.pow(2, n - 1) - 1);
+    const nivel = d.nivel || 1;
+    const currentThreshold = xpToReachLevel(nivel);
+    const nextLevelTarget  = xpToReachLevel(nivel + 1);
+    const levelSize        = nextLevelTarget - currentThreshold;
+    const cur     = (d.xpTotal || 0) - currentThreshold;
+    const pct     = Math.round((cur / levelSize) * 100);
+    const toNext  = nextLevelTarget - (d.xpTotal || 0);
 
     document.getElementById('hud').innerHTML = `
       <div>

@@ -317,9 +317,13 @@ function renderList() {
   let html = '<div class="list">';
   ITEMS.forEach(item => {
     const key = VALUE_TO_KEY[item.estado] || 'pendiente';
-    // Botón hoguera solo para Prohibidos. Disabled si no hay hogueras disponibles.
+    // Botón hoguera solo para Prohibidos. Disabled si no hay hogueras o ya está omitido (idempotencia).
+    const hogueraBlocked = HOGUERAS.value <= 0 || item.estado === '❌ Omitido';
+    const hogueraTitle   = item.estado === '❌ Omitido'
+      ? 'Ya estás Omitido. Reverí a Pendiente primero para usar hoguera.'
+      : (HOGUERAS.value <= 0 ? 'Sin hogueras disponibles' : 'Caer pero usar hoguera (no resta humanidad)');
     const hogueraBtn = item.esProhibido
-      ? `<button class="estado-btn" data-e="hoguera" title="Caer pero usar hoguera (no resta humanidad)" ${HOGUERAS.value <= 0 ? 'disabled' : ''}>🔥</button>`
+      ? `<button class="estado-btn" data-e="hoguera" title="${hogueraTitle}" ${hogueraBlocked ? 'disabled' : ''}>🔥</button>`
       : '';
     html += `
       <div class="${rowClass(item.estado)}" data-id="${item.id}" data-prohibido="${item.esProhibido ? '1' : '0'}">
@@ -378,7 +382,10 @@ async function toggle(id, newEstado, rowEl, useHoguera = false) {
   const item = ITEMS.find(i => i.id === id);
   if (!item) return;
   const prev = item.estado;
-  if (prev === newEstado && !useHoguera) return; // sin cambios
+  // Idempotencia: si ya está en el estado destino, no hacer nada.
+  // Caso especial: clic en 🔥 con prev ya = Omitido → no descontar otra hoguera.
+  if (prev === newEstado) return;
+  if (useHoguera && prev === '❌ Omitido') return;
 
   // Optimistic update visual
   item.estado = newEstado;
