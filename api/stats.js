@@ -6,56 +6,32 @@ const NOTION_HEADERS = (token) => ({
 
 const PERSONAJE_DB = '9be62f8e75094d0e8e9be41e96eeb8ca';
 const STATS_DB     = '4abc659f8b144de99e8900fa1478964f';
-const HABITOS_DB   = '72f41711-a604-4b42-8254-6bf4243e3135'; // ⚡ Hábitos Diarios
 
 /**
- * Suma XP Ganado de la DB ⚡ Hábitos Diarios para un personaje específico.
- * Bypassa el rollup "XP Hábitos Auto" que devuelve null en la API estándar.
- * Pagina hasta 100 items por página, hasta 10 páginas (1000 hábitos máx).
+ * Escribe el xpTotal calculado al campo "XP Total" del Personaje.
+ * Solo funciona si el campo es de tipo number (no formula/rollup).
+ * Ejecuta el PATCH solo si el valor difiere del actual — evita writes innecesarios.
  */
-async function sumXpHabitosFromSource(token, personajeId) {
-  let cursor = null;
-  let total = 0;
-  let count = 0;
-  let pages = 0;
-  let error = null;
-
+async function syncXpTotalToNotion(token, pageId, xpTotalProp, xpTotal) {
+  if (!xpTotalProp || xpTotalProp.type !== 'number') {
+    return { status: 'skipped', reason: `field type is ${xpTotalProp?.type || 'missing'}, not number` };
+  }
+  const current = xpTotalProp.number ?? null;
+  if (current === xpTotal) {
+    return { status: 'unchanged', current };
+  }
   try {
-    do {
-      const body = {
-        filter: {
-          property: 'Personaje',
-          relation: { contains: personajeId },
-        },
-        page_size: 100,
-      };
-      if (cursor) body.start_cursor = cursor;
-
-      const r = await fetch(`https://api.notion.com/v1/databases/${HABITOS_DB}/query`, {
-        method: 'POST',
-        headers: NOTION_HEADERS(token),
-        body: JSON.stringify(body),
-      });
-
-      if (!r.ok) {
-        error = { httpError: r.status, body: (await r.text()).slice(0, 500) };
-        break;
-      }
-      const data = await r.json();
-      pages++;
-
-      for (const habito of data.results || []) {
-        const xp = habito.properties?.['XP Ganado']?.formula?.number ?? 0;
-        total += xp;
-        count++;
-      }
-      cursor = data.has_more ? data.next_cursor : null;
-      if (pages >= 10) break; // safety
-    } while (cursor);
-
-    return { value: total, count, pages, error };
+    const r = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
+      method: 'PATCH',
+      headers: NOTION_HEADERS(token),
+      body: JSON.stringify({
+        properties: { 'XP Total': { number: xpTotal } },
+      }),
+    });
+    if (!r.ok) return { status: 'failed', httpError: r.status, body: (await r.text()).slice(0, 300) };
+    return { status: 'synced', from: current, to: xpTotal };
   } catch (e) {
-    return { value: null, count, pages, error: { exception: e.message } };
+    return { status: 'error', message: e.message };
   }
 }
 
@@ -94,20 +70,24 @@ export default async function handler(req, res) {
       return null;
     };
 
-    // --- COMPONENTES de XP manuales (number) y rollup XP Auto ---
-    const xpFisico    = readNumeric('XP Físico')    ?? 0;
-    const xpMente     = readNumeric('XP Mente')     ?? 0;
-    const xpHabitos   = readNumeric('XP Hábitos')   ?? 0;
-    const xpNutricion = readNumeric('XP Nutrición') ?? 0;
-    const xpNegocio   = readNumeric('XP Negocio')   ?? 0;
-    const xpAuto      = readNumeric('XP Auto')      ?? 0;
+    // --- STATS por categoría (fuente única de verdad) ---
+    const statMap = {};
+    for (const row of statsData.results) {
+      const name = row.properties['Stat']?.title?.[0]?.plain_text || '';
+      const xp   = row.properties['XP Total Stat']?.rollup?.number || 0;
+      if (name.includes('Físico'))    statMap.fisico    = xp;
+      if (name.includes('Mente'))     statMap.mente     = xp;
+      if (name.includes('Nutrición')) statMap.nutricion = xp;
+      if (name.includes('Hábitos'))   statMap.habitos   = xp;
+      if (name.includes('Negocio'))   statMap.negocio   = xp;
+    }
 
-    // --- BYPASS del rollup roto: sumar XP Hábitos Auto desde DB origen ---
-    const habitosResult = await sumXpHabitosFromSource(NOTION_TOKEN, page.id);
-    const xpHabitosAuto = habitosResult.value ?? 0;
-
-    // --- XP TOTAL: suma manual robusta ---
-    const xpTotal = xpFisico + xpMente + xpHabitos + xpNutricion + xpNegocio + xpAuto + xpHabitosAuto;
+    // --- XP TOTAL: suma directa de las 5 stats ---
+    const xpTotal = (statMap.fisico    || 0)
+                  + (statMap.mente     || 0)
+                  + (statMap.nutricion || 0)
+                  + (statMap.habitos   || 0)
+                  + (statMap.negocio   || 0);
 
     // --- CURVA DE NIVELES (exponencial: cada nivel necesita el doble del anterior) ---
     // Threshold acumulado para nivel N: 500 * (2^(N-1) - 1)
@@ -127,24 +107,15 @@ export default async function handler(req, res) {
     const filled           = Math.floor((cur / levelSize) * 10);
     const barraXP          = `Nv.${nivel} ${'▰'.repeat(filled)}${'▱'.repeat(10 - filled)} ${xpTotal}/${nextLevelTarget} XP`;
 
-    // --- STATS por categoría ---
-    const statMap = {};
-    for (const row of statsData.results) {
-      const name = row.properties['Stat']?.title?.[0]?.plain_text || '';
-      const xp   = row.properties['XP Total Stat']?.rollup?.number || 0;
-      if (name.includes('Físico'))    statMap.fisico    = xp;
-      if (name.includes('Mente'))     statMap.mente     = xp;
-      if (name.includes('Nutrición')) statMap.nutricion = xp;
-      if (name.includes('Hábitos'))   statMap.habitos   = xp;
-      if (name.includes('Negocio'))   statMap.negocio   = xp;
-    }
-
     // --- HUMANIDAD + HOGUERAS ---
     const humanidad     = readNumeric('Humanidad') ?? 0;
     const hogueras      = readNumeric('Hogueras') ?? 0;
     const hogueras_max  = 4;
     const estadoPersonaje = props['Estado Personaje']?.formula?.string
       || (humanidad >= 5 ? '🪙 Humano' : humanidad > 0 ? '🩸 Maldito' : '💀 Hueco');
+
+    // --- SYNC del xpTotal calculado al Personaje (si el field es number) ---
+    const syncResult = await syncXpTotalToNotion(NOTION_TOKEN, page.id, props['XP Total'], xpTotal);
 
     res.status(200).json({
       fisico:    statMap.fisico    || 0,
@@ -161,23 +132,16 @@ export default async function handler(req, res) {
       hogueras,
       hogueras_max,
       _debug: {
-        xpSource: 'manual sum (rollup XP Hábitos Auto bypassed)',
-        xpComponents: {
-          'XP Físico': xpFisico,
-          'XP Mente': xpMente,
-          'XP Hábitos': xpHabitos,
-          'XP Nutrición': xpNutricion,
-          'XP Negocio': xpNegocio,
-          'XP Auto': xpAuto,
-          'XP Hábitos Auto (calculado)': xpHabitosAuto,
+        xpSource: 'sum of 5 stats from 📊 Stats DB (single source of truth)',
+        statBreakdown: {
+          fisico:    statMap.fisico    || 0,
+          mente:     statMap.mente     || 0,
+          nutricion: statMap.nutricion || 0,
+          habitos:   statMap.habitos   || 0,
+          negocio:   statMap.negocio   || 0,
         },
-        habitosBypass: {
-          dbId: HABITOS_DB,
-          itemsCount: habitosResult.count,
-          pagesScanned: habitosResult.pages,
-          error: habitosResult.error,
-        },
-        xpTotalNotion: readNumeric('XP Total'), // referencia: la fórmula de Notion sigue rota
+        notionSync: syncResult,
+        xpTotalNotion: readNumeric('XP Total'),
       },
     });
 
