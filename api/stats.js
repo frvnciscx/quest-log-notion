@@ -10,7 +10,11 @@ const STATS_DB     = '4abc659f8b144de99e8900fa1478964f';
 /**
  * Escribe el xpTotal calculado al campo "XP Total" del Personaje.
  * Solo funciona si el campo es de tipo number (no formula/rollup).
- * Ejecuta el PATCH solo si el valor difiere del actual — evita writes innecesarios.
+ *
+ * Monótono por diseño: nunca escribe un valor menor al que ya está guardado.
+ * Ese campo es el piso anti-stale que deja el cron tras sumar los registros
+ * uno por uno; si un rollup stale lo pisara hacia abajo, el guardia dejaría
+ * de servir justo cuando hace falta.
  */
 async function syncXpTotalToNotion(token, pageId, xpTotalProp, xpTotal) {
   if (!xpTotalProp || xpTotalProp.type !== 'number') {
@@ -19,6 +23,9 @@ async function syncXpTotalToNotion(token, pageId, xpTotalProp, xpTotal) {
   const current = xpTotalProp.number ?? null;
   if (current === xpTotal) {
     return { status: 'unchanged', current };
+  }
+  if (current !== null && xpTotal < current) {
+    return { status: 'blocked', reason: 'no se baja el piso anti-stale', current, intento: xpTotal };
   }
   try {
     const r = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
@@ -82,12 +89,26 @@ export default async function handler(req, res) {
       if (name.includes('Negocio'))   statMap.negocio   = xp;
     }
 
-    // --- XP TOTAL: suma directa de las 5 stats ---
-    const xpTotal = (statMap.fisico    || 0)
-                  + (statMap.mente     || 0)
-                  + (statMap.nutricion || 0)
-                  + (statMap.habitos   || 0)
-                  + (statMap.negocio   || 0);
+    // --- XP TOTAL: suma de los rollups, con piso anti-stale ---
+    //
+    // Los rollups agregados de Notion se calculan de forma perezosa y pueden
+    // devolver valores viejos. El cron diario guarda el XP real (suma directa
+    // de los registros) en "XP Total" del Personaje; si el rollup viene por
+    // debajo de esa referencia, el rollup está stale y usamos la referencia.
+    //
+    // Solo sube, nunca baja: ganar XP durante el día deja el rollup por encima
+    // del piso, y ese es el caso normal.
+    const xpDesdeRollups = (statMap.fisico    || 0)
+                         + (statMap.mente     || 0)
+                         + (statMap.nutricion || 0)
+                         + (statMap.habitos   || 0)
+                         + (statMap.negocio   || 0);
+
+    const xpTotalProp = props['XP Total'];
+    const pisoAuditado = xpTotalProp?.type === 'number' ? (xpTotalProp.number ?? null) : null;
+
+    const staleDetectado = pisoAuditado !== null && xpDesdeRollups < pisoAuditado;
+    const xpTotal = staleDetectado ? pisoAuditado : xpDesdeRollups;
 
     // --- CURVA DE NIVELES (exponencial: cada nivel necesita el doble del anterior) ---
     // Threshold acumulado para nivel N: 500 * (2^(N-1) - 1)
@@ -132,7 +153,12 @@ export default async function handler(req, res) {
       hogueras,
       hogueras_max,
       _debug: {
-        xpSource: 'sum of 5 stats from 📊 Stats DB (single source of truth)',
+        xpSource: staleDetectado
+          ? 'piso auditado por cron (rollups de Notion venían stale)'
+          : 'suma de rollups del DB Stats',
+        staleDetectado,
+        xpDesdeRollups,
+        pisoAuditado,
         statBreakdown: {
           fisico:    statMap.fisico    || 0,
           mente:     statMap.mente     || 0,
@@ -141,7 +167,6 @@ export default async function handler(req, res) {
           negocio:   statMap.negocio   || 0,
         },
         notionSync: syncResult,
-        xpTotalNotion: readNumeric('XP Total'),
       },
     });
 
