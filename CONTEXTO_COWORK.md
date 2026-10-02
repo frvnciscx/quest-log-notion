@@ -19,7 +19,8 @@ Los widgets viven en un repositorio de GitHub y se despliegan en Vercel.
 ```
 radar-widget/
 ├── api/
-│   ├── stats.js               ← Lee Personaje + Stats (con Humanidad y bypass de rollups)
+│   ├── stats.js               ← Personaje + Stats + Humanidad (con piso anti-stale)
+│   ├── audit-xp.js            ← Auditoría: suma real vs rollups, detecta stale
 │   ├── registro.js            ← GET hábitos del día (resuelve nombres del Catálogo, filtra pausados)
 │   ├── habit-toggle.js        ← POST cambiar estado (auto -1 Humanidad si Prohibido cae)
 │   ├── misiones.js            ← GET misiones con progreso calculado (exporta computeMisiones)
@@ -96,8 +97,31 @@ Page ID del personaje principal (Paco): `357e89bc-3fee-81f7-a707-ccdde4a842ce`
 ### XP / Nivel / Rango
 - Cada hábito tiene `XP Valor` (number)
 - Al marcar `Estado = ✅ Completado`, suma XP a la stat correspondiente
-- Cada 500 XP = 1 nivel
+- **Curva exponencial**: cada nivel cuesta el doble que el anterior
+  - Threshold acumulado para nivel N: `500 * (2^(N-1) - 1)`
+  - N1=0 · N2=500 · N3=1500 · N4=3500 · N5=7500 · N6=15500 · N7=31500 · N8=63500
+  - Inverso: `nivel = floor(log2(xpTotal / 500 + 1)) + 1`
 - 8 rangos: 💀 Iniciado → 👑 Leyenda
+- La fórmula vive duplicada en 4 lugares: `api/stats.js`, `dashboard.html`,
+  `personaje.html` y las fórmulas `Nivel` / `Barra XP` del Personaje en Notion.
+  Si cambia la curva, hay que tocar los cuatro.
+
+### Guardia anti-stale de XP
+Los rollups agregados de Notion (`XP Total Stat` del DB Stats) se calculan de
+forma perezosa y **pueden devolver valores viejos sin avisar**. En octubre 2026
+reportaban 6885 XP cuando el valor real era 9675 — una diferencia del 28.5%
+uniforme en las 5 categorías, que parecía una regla de negocio desconocida y
+era simplemente un snapshot cacheado.
+
+Mitigación en dos partes:
+1. `cron-daily` paso 4 recorre todos los registros, suma el `XP Ganado` resuelto
+   página por página (que Notion sí devuelve fresco) y lo guarda en el campo
+   `XP Total` del Personaje — que **debe ser de tipo number**, no formula.
+2. `api/stats.js` usa ese valor como **piso**: si la suma de rollups viene por
+   debajo, los rollups están stale y se usa el piso. Nunca baja.
+
+`GET /api/audit-xp?details=1` corre la comparación a demanda y expone
+`resumen.staleDetectado` más el conteo de registros con relaciones rotas.
 
 ### Humanidad (5 pips, cap 0–5)
 - Inicial: 5
@@ -179,6 +203,32 @@ Fix aplicado:
 - Código: `api/stats.js` suma manualmente todos los componentes en lugar de
   depender de la fórmula `XP Total` de Notion.
 - DBs en papelera: ⚡ Hábitos Diarios + 🏗️ Habitos (purgar cuando convenga).
+
+## Historial — Fósil de ⚡ Hábitos Diarios (resuelto Oct 2026)
+`api/stats.js` seguía haciendo un query a la DB eliminada (ID hardcodeado
+`72f41711-...`) como "bypass del rollup roto". Respondía 404 silenciosamente,
+el bypass aportaba 0, y el XP total colapsaba a 145 — el único componente
+superviviente. Las stats individuales se veían bien porque venían del DB Stats
+por otro camino, lo que hacía el síntoma confuso.
+
+Fix: `api/stats.js` calcula `xpTotal` como suma de las 5 stats del DB Stats y
+ya no lee los componentes `XP Físico/Mente/Nutrición/Negocio/Hábitos` del
+Personaje. Esos campos quedaron muertos en Notion (valen 0, salvo `XP Hábitos`
+con el fósil de 145); se pueden borrar sin consecuencias.
+
+**Lección operativa**: al eliminar una DB en Notion, hacer `grep` del ID en el
+repo antes de darla por eliminada. Una falla silenciosa que devuelve 200 con
+datos incompletos cuesta más que un error ruidoso.
+
+## Historial — Rollups stale (resuelto Oct 2026)
+Ver "Guardia anti-stale de XP" arriba. Síntoma: `/api/stats` reportaba 6885 XP
+cuando el real era 9675. Diagnóstico equivocado al principio (se buscó un bug
+en los datos y en la fórmula `XP Ganado`); la auditoría probó que los 1516
+registros estaban íntegros y que el problema era el caché del rollup.
+
+Señal para la próxima: cuando dos fuentes discrepan, preguntar **cuándo** se
+calculó cada una antes de preguntar **cómo**. Un porcentaje faltante uniforme
+entre categorías sugiere snapshot viejo, no regla de negocio.
 
 ## Referencia estética Dark Souls (para PWA futura)
 - CodePen: https://codepen.io/frvnciscx/full/GgNpZpa

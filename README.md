@@ -143,7 +143,7 @@ Vercel Hobby permite hasta 2 cron jobs; este endpoint combina ambas tareas en 1.
 ## 🎲 Mecánicas RPG (resumen)
 
 ### Universal (intercambiable por tema)
-- **Puntos / Nivel / Tier** — 500 puntos = 1 nivel, 8 tiers progresivos
+- **Puntos / Nivel / Tier** — curva exponencial (cada nivel cuesta el doble que el anterior), 8 tiers progresivos
 - **5 atributos** — dimensiones del personaje (5 hábitos los alimentan)
 - **Pool de Integridad** — recurso protegido (cap 0–5) que cae al fallar Hábitos Prohibidos
 - **Hogueras (excepciones autorizadas)** — 4 por semana, absorben caídas en Prohibidos sin gastar Integridad. Reset automático cada lunes
