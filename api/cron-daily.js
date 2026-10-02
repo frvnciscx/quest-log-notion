@@ -51,6 +51,15 @@ async function auditAndPersistXp(token) {
     return out;
   }
 
+  // Si el escaneo se cortó por maxPages, el total está incompleto y es MENOR
+  // que el real. Persistirlo bajaría el piso y rompería justo la garantía que
+  // el guardia existe para dar. Mejor dejar el piso viejo y avisar.
+  if (audit.truncado) {
+    out.persistido = false;
+    out.motivo = 'escaneo truncado (subí maxPages); no se baja el piso con un total parcial';
+    return out;
+  }
+
   const anterior = prop.number ?? null;
   if (anterior === audit.totalXpGanado) {
     out.persistido = false;

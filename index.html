@@ -214,12 +214,29 @@ try {
 } catch(e) {}
 
 const STATS = [
-  { key: 'fisico',    label: 'Físico',    max: 500 },
-  { key: 'mente',     label: 'Mente',     max: 500 },
-  { key: 'nutricion', label: 'Nutrición', max: 500 },
-  { key: 'habitos',   label: 'Hábitos',   max: 500 },
-  { key: 'negocio',   label: 'Negocio',   max: 500 },
+  { key: 'fisico',    label: 'Físico'    },
+  { key: 'mente',     label: 'Mente'     },
+  { key: 'nutricion', label: 'Nutrición' },
+  { key: 'habitos',   label: 'Hábitos'   },
+  { key: 'negocio',   label: 'Negocio'   },
 ];
+
+/* Escala dinámica del radar.
+ * El techo fijo de 500 saturaba todas las stats al 100% apenas superaban
+ * ese valor, dibujando un pentágono perfecto que ocultaba las diferencias
+ * reales. Ahora el techo lo define el stat más alto, redondeado hacia
+ * arriba al siguiente medio-orden de magnitud (1755 → 2000, 2865 → 3000). */
+function niceCeil(n) {
+  if (n <= 500) return 500;
+  const mag  = Math.pow(10, Math.floor(Math.log10(n)));
+  const step = mag / 2;
+  return Math.ceil(n / step) * step;
+}
+
+function escalaDe(data) {
+  const maxValor = Math.max(...STATS.map(s => data[s.key] || 0), 1);
+  return niceCeil(maxValor);
+}
 
 function buildRadar(data) {
   const size = 200;
@@ -250,7 +267,8 @@ function buildRadar(data) {
   }
 
   // forma de stats
-  const vals = STATS.map(s => Math.min((data[s.key] || 0) / s.max, 1));
+  const escala = escalaDe(data);
+  const vals = STATS.map(s => Math.min((data[s.key] || 0) / escala, 1));
   let shape = '';
   for (let i = 0; i < N; i++) {
     const r = R * Math.max(vals[i], 0.03);
@@ -275,10 +293,11 @@ async function loadData() {
     const res = await fetch('/api/stats');
     const d = await res.json();
 
+    const escala = escalaDe(d);
     let statsHTML = '';
     STATS.forEach(s => {
       const val = d[s.key] || 0;
-      const pct = Math.min(Math.round((val / s.max) * 100), 100);
+      const pct = Math.min(Math.round((val / escala) * 100), 100);
       statsHTML += `
         <div class="stat-item">
           <div class="stat-head">

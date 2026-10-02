@@ -174,6 +174,12 @@ export default async function handler(req, res) {
       readRollups(token),
     ]);
 
+    // Los rollups siempre cubren el histórico completo. Si el escaneo se
+    // acotó con ?desde o se truncó por maxPages, comparar los dos números
+    // es comparar peras con manzanas: la diferencia sale enorme y `stale`
+    // daría falsos negativos. En ese caso la comparación no aplica.
+    const comparable = !desde && !audit.truncado;
+
     const comparacion = {};
     for (const k of ['fisico', 'mente', 'nutricion', 'habitos', 'negocio']) {
       const calculado = audit.porStat[k].xpGanadoSuma;
@@ -181,23 +187,26 @@ export default async function handler(req, res) {
       comparacion[k] = {
         sumaXpGanadoCalculada: calculado,
         rollupNotion: rollup,
-        diferencia: rollup - calculado,
-        stale: rollup < calculado,
         completados: audit.porStat[k].completados,
         omitidos: audit.porStat[k].omitidos,
+        ...(comparable
+          ? { diferencia: rollup - calculado, stale: rollup < calculado }
+          : { comparacionNoAplica: desde ? 'escaneo acotado con ?desde' : 'escaneo truncado' }),
       };
     }
 
     const totalRollup = Object.values(rollups).reduce((a, b) => a + b, 0);
-    const algunoStale = Object.values(comparacion).some(c => c.stale);
 
     const resumen = {
       registrosEscaneados: audit.registrosEscaneados,
       paginasEscaneadas: audit.paginasEscaneadas,
       truncado: audit.truncado,
+      rangoCompleto: comparable,
       totalXpGanadoCalculado: audit.totalXpGanado,
       totalRollupNotion: totalRollup,
-      staleDetectado: algunoStale,
+      staleDetectado: comparable
+        ? Object.values(comparacion).some(c => c.stale)
+        : null,
       conteoProblemas: Object.fromEntries(
         Object.entries(audit.problemas).map(([k, v]) => [k, v.length])
       ),
